@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Генератор упаковочной бумаги</title>
+    <style>
+	    * {
+	        box-sizing: border-box;
+	        margin: 0;
+	        padding: 0;
+	    }
+
+	    body {
+	        max-width: 1200px;
+	        margin: 0 auto;
+	        padding: 20px;
+	        font-family: Arial, sans-serif;
+	        background-color: #f5f5f5;
+	    }
+
+	    h1 {
+	        font-size: 24px;
+	        margin-bottom: 20px;
+	        text-align: center;
+	    }
+
+	    .container {
+	        display: flex;
+	        gap: 20px;
+	        flex-wrap: wrap;
+	    }
+
+	    .controls, .preview {
+	        flex: 1;
+	        min-width: 300px;
+	        background: white;
+	        padding: 20px;
+	        border-radius: 8px;
+	        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+	    }
+
+	    .form-group {
+	        margin-bottom: 15px;
+	    }
+
+	    label {
+	        display: block;
+	        margin-bottom: 5px;
+	        font-weight: bold;
+	        color: #333;
+	    }
+
+	    input[type="text"],
+	    input[type="number"],
+	    select {
+	        width: 100%;
+	        padding: 12px;
+	        border: 1px solid #ddd;
+	        border-radius: 4px;
+	        font-size: 16px;
+	    }
+
+	    input[type="range"] {
+	        width: 100%;
+	        margin: 10px 0;
+	    }
+
+	    input[type="file"] {
+	        width: 100%;
+	        padding: 12px;
+	        border: 1px dashed #ddd;
+	        border-radius: 4px;
+	    }
+
+	    input[type="checkbox"] {
+	        width: 20px;
+	        height: 20px;
+	        margin-right: 8px;
+	        vertical-align: middle;
+	    }
+
+	    button {
+	        padding: 15px 20px;
+	        background-color: #4CAF50;
+	        color: white;
+	        border: none;
+	        border-radius: 4px;
+	        cursor: pointer;
+	        font-size: 16px;
+	        width: 100%;
+	        margin-top: 20px;
+	    }
+
+	    button:hover {
+	        background-color: #45a049;
+	    }
+
+	    button:active {
+	        background-color: #3d8b40;
+	    }
+
+	    #result {
+	        max-width: 100%;
+	        height: auto;
+	        border-radius: 4px;
+	    }
+
+	    .loading {
+	        display: none;
+	        text-align: center;
+	        margin: 20px 0;
+	        font-size: 16px;
+	    }
+
+	    @media screen and (max-width: 768px) {
+	        body {
+	            padding: 10px;
+	        }
+
+	        h1 {
+	            font-size: 20px;
+	        }
+
+	        .container {
+	            flex-direction: column;
+	        }
+
+	        .controls, .preview {
+	            min-width: 100%;
+	        }
+
+	        .form-group {
+	            margin-bottom: 20px;
+	        }
+
+	        label {
+	            font-size: 16px;
+	        }
+
+	        input[type="text"],
+	        input[type="number"],
+	        select {
+	            font-size: 16px;
+	            padding: 15px;
+	        }
+
+	        button {
+	            padding: 20px;
+	            font-size: 18px;
+	        }
+
+	        input[type="checkbox"] + label {
+	            padding: 15px 0;
+	            display: inline-block;
+	        }
+	    }
+
+	    @media screen and (max-width: 320px) {
+	        body {
+	            padding: 5px;
+	        }
+
+	        .controls, .preview {
+	            padding: 10px;
+	        }
+
+	        h1 {
+	            font-size: 18px;
+	        }
+	    }
+
+	    @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+	        input, button, select {
+	            font-weight: 300;
+	        }
+	    }
+
+	    @supports (-webkit-touch-callout: none) {
+	        input, select {
+	            font-size: 16px;
+	        }
+	    }
+
+	    @media (prefers-color-scheme: dark) {
+	        body {
+	            background-color: #1a1a1a;
+	            color: #ffffff;
+	        }
+
+	        .controls, .preview {
+	            background: #2d2d2d;
+	        }
+
+	        input[type="text"],
+	        input[type="number"],
+	        select {
+	            background: #3d3d3d;
+	            color: #ffffff;
+	            border-color: #4d4d4d;
+	        }
+
+	        label {
+	            color: #ffffff;
+	        }
+	        
+	        .download-buttons {
+			    display: flex;
+			    gap: 10px;
+			    flex-wrap: wrap;
+			    margin-top: 20px;
+			}
+
+			.download-buttons button {
+			    flex: 1;
+			    min-width: 120px;
+			    margin-top: 0;
+			}
+
+			@media screen and (max-width: 768px) {
+			    .download-buttons {
+			        flex-direction: column;
+			    }
+			    
+			    .download-buttons button {
+			        width: 100%;
+			        margin-top: 10px;
+			    }
+			}
+			
+			.preview-container {
+			    display: flex;
+			    flex-wrap: wrap;
+			    gap: 10px;
+			    margin-top: 10px;
+			}
+
+			.image-preview {
+			    position: relative;
+			    width: 100px;
+			    height: 100px;
+			    border: 1px solid #ddd;
+			    border-radius: 4px;
+			    overflow: hidden;
+			}
+
+			.image-preview img {
+			    width: 100%;
+			    height: 100%;
+			    object-fit: cover;
+			}
+
+			.order-number {
+			    position: absolute;
+			    top: 5px;
+			    right: 5px;
+			    background: rgba(0, 0, 0, 0.7);
+			    color: white;
+			    padding: 2px 6px;
+			    border-radius: 3px;
+			    font-size: 12px;
+			}
+	    }
+	</style>
+</head>
+<title>Генератор упаковочной бумаги</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+<style>
+    #canvas3d {
+        width: 500px;
+        height: 500px;
+        border: 1px solid black;
+        margin-top: 20px;
+    }
+</style>
+<body>
+    <h1>Генератор изображений для упаковочной бумаги</h1>
+    
+    <div class="container">
+        <div class="controls">
+            <form id="generatorForm">
+                <div class="form-group">
+                    <label>Загрузите изображения:</label>
+                    <input type="file" id="images" multiple accept="image/*" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Ширина (пиксели):</label>
+                    <input type="number" id="width" value="1000" min="100" max="5000">
+                </div>
+
+                <div class="form-group">
+                    <label>Высота (пиксели):</label>
+                    <input type="number" id="height" value="1000" min="100" max="5000">
+                </div>
+
+                <div class="form-group">
+                    <label>Столбцы: <span id="columnsValue">3</span></label>
+                    <input type="range" id="columns" min="1" max="10" value="3" oninput="columnsValue.textContent=this.value">
+                </div>
+
+                <div class="form-group">
+                    <label>Расстояние между изображениями: <span id="spacingValue">0</span>px</label>
+                    <input type="range" id="spacing" min="0" max="100" value="0" oninput="spacingValue.textContent=this.value">
+                </div>
+
+                <div class="form-group">
+                    <label>Цвет фона (несколько, для градиентаного фона. Например: красный, синий, #00FF00"):</label>
+                    <input type="text" id="gradientColors" value="белый" placeholder="Например: красный, синий, #00FF00">
+                </div>
+
+                <div class="form-group">
+                    <label>Направление градиента:</label>
+                    <select id="gradientDirection">
+                        <option value="horizontal">Горизонтальный</option>
+                        <option value="vertical">Вертикальный</option>
+                        <option value="diagonal">Диагональный</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Резкость краев: <span id="sharpnessValue">0.01</span></label>
+                    <input type="range" id="sharpness" min="0.01" max="1" step="0.01" value="0.0" 
+                           oninput="sharpnessValue.textContent=Number(this.value).toFixed(1)">
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="shuffle">
+                        Перемешать изображения.
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="customOrder">
+                        Выбрать только некоторые изображения.
+                    </label>
+                </div>
+
+                <div id="imageOrder" class="selected-images"></div>
+
+                <button type="submit">Создать</button>
+            </form>
+        </div>
+
+        <div class="preview">
+            <h2>Предпросмотр</h2>
+            <div class="loading">Генерация изображения...</div>
+            <img id="result" alt="Результат">
+            <div id="downloadButtons">
+                <button onclick="downloadImage('png')">Скачать PNG</button>
+                <button onclick="downloadImage('jpg')">Скачать JPG</button>
+                <button onclick="downloadImage('webp')">Скачать WebP</button>
+                <button onclick="downloadImage('bmp')">Скачать BMP</button>
+            </div>
+        </div>
+	</div>
+	
+	<div>
+        <label for="prismWidth">Ширина коробки (см):</label>
+        <input type="number" id="prismWidth" value="10">
+        <label for="prismHeight">Высота коробки (см):</label>
+        <input type="number" id="prismHeight" value="10">
+        <label for="prismDepth">Длина коробки (см):</label>
+		<input id="prismDepth" type="number" value="20">
+    </div>
+    <div id="canvas3d"></div>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script>
+    	function createGradient(ctx, width, height, colors, direction) {
+		    let gradient;
+		    
+		    switch(direction) {
+		        case 'horizontal':
+		            gradient = ctx.createLinearGradient(0, 0, width, 0);
+		            break;
+		        case 'vertical':
+		            gradient = ctx.createLinearGradient(0, 0, 0, height);
+		            break;
+		        case 'diagonal':
+		            gradient = ctx.createLinearGradient(0, 0, width, height);
+		            break;
+		        default:
+		            gradient = ctx.createLinearGradient(0, 0, width, 0);
+		    }
+		    return gradient;
+		}
+    	
+    	let imageOrder = [];
+
+		document.getElementById('images').addEventListener('change', function(e) {
+		    const previewContainer = document.getElementById('previewContainer');
+		    previewContainer.innerHTML = '';
+		    imageOrder = [];
+		    
+		    Array.from(e.target.files).forEach((file, index) => {
+		        const reader = new FileReader();
+		        reader.onload = function(e) {
+		            const wrapper = document.createElement('div');
+		            wrapper.className = 'image-preview';
+		            
+		            const img = document.createElement('img');
+		            img.src = e.target.result;
+		            
+		            const orderNumber = document.createElement('div');
+		            orderNumber.className = 'order-number';
+		            orderNumber.textContent = index + 1;
+		            
+		            wrapper.appendChild(img);
+		            wrapper.appendChild(orderNumber);
+		            
+		            wrapper.addEventListener('click', function() {
+		                if (document.getElementById('customOrder').checked) {
+		                    const currentIndex = imageOrder.indexOf(index);
+		                    if (currentIndex === -1) {
+		                        imageOrder.push(index);
+		                        orderNumber.textContent = imageOrder.length;
+		                    } else {
+		                        imageOrder = imageOrder.filter(i => i !== index);
+		                        orderNumber.textContent = '';
+		                        updateOrderNumbers();
+		                    }
+		                }
+		            });
+		            
+		            previewContainer.appendChild(wrapper);
+		        }
+		        reader.readAsDataURL(file);
+		    });
+		});
+
+		function updateOrderNumbers() {
+		    const previews = document.querySelectorAll('.image-preview');
+		    imageOrder.forEach((imageIndex, orderIndex) => {
+		        const orderNumber = previews[imageIndex].querySelector('.order-number');
+		        orderNumber.textContent = orderIndex + 1;
+		    });
+		}
+
+		document.getElementById('customOrder').addEventListener('change', function(e) {
+		    if (!e.target.checked) {
+		        imageOrder = [];
+		        const orderNumbers = document.querySelectorAll('.order-number');
+		        orderNumbers.forEach((number, index) => {
+		            number.textContent = index + 1;
+		        });
+		    }
+		});
+    	
+	    document.getElementById('images').addEventListener('change', function(e) {
+            const previewContainer = document.getElementById('previewContainer');
+            previewContainer.innerHTML = '';
+            
+            for (let file of e.target.files) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'preview-image';
+                    previewContainer.appendChild(img);
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+
+        function downloadImage(format) {
+            const imageData = document.getElementById('result').src;
+            
+            fetch(`/download/${format}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ image: imageData })
+            })
+            .then(response => response.blob())
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `wrapping_paper.${format}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                alert('Произошла ошибка при скачивании изображения');
+            });
+        }
+        
+        document.getElementById('generatorForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            const loading = document.querySelector('.loading');
+            loading.style.display = 'block';
+            
+            const formData = new FormData();
+
+            const fileInput = document.getElementById('images');
+            for (let file of fileInput.files) {
+                formData.append('images', file);
+            }
+
+            formData.append('width', document.getElementById('width').value);
+            formData.append('height', document.getElementById('height').value);
+            formData.append('columns', document.getElementById('columns').value);
+            formData.append('spacing', document.getElementById('spacing').value);
+            formData.append('gradientColors', document.getElementById('gradientColors').value);
+            formData.append('gradientDirection', document.getElementById('gradientDirection').value);
+            formData.append('sharpness', document.getElementById('sharpness').value);
+            formData.append('shuffle', document.getElementById('shuffle').checked);
+            formData.append('customOrder', document.getElementById('customOrder').checked);
+
+            if (document.getElementById('customOrder').checked) {
+                formData.append('selectedImages', imageOrder.join(','));
+            }
+
+            document.querySelector('.loading').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+
+            fetch('/generate', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.querySelector('.loading').style.display = 'none';
+                document.getElementById('result').style.display = 'block';
+                document.getElementById('result').src = data.image;
+
+                updateBoxTexture(data.image);
+
+                document.getElementById('downloadButtons').style.display = 'block';
+            })
+            .catch(error => console.error('Error:', error));
+        });
+        
+	    const scene = new THREE.Scene();
+	    scene.background = new THREE.Color(0xffffff);
+	    const camera = new THREE.PerspectiveCamera(75, 500 / 500, 0.1, 1000);
+	    const renderer = new THREE.WebGLRenderer();
+	    renderer.setSize(500, 500);
+	    document.getElementById('canvas3d').appendChild(renderer.domElement);
+
+	    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+	    scene.add(ambientLight);
+	    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+	    directionalLight.position.set(1, 1, 1);
+	    scene.add(directionalLight);
+
+	    let boxWidth = parseFloat(document.getElementById('prismWidth').value);
+	    let boxHeight = parseFloat(document.getElementById('prismHeight').value);
+	    let boxDepth = parseFloat(document.getElementById('prismDepth').value);
+
+	    let boxGeometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+	    const boxMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, map: null });
+	    const box = new THREE.Mesh(boxGeometry, boxMaterial);
+	    scene.add(box);
+
+	    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+	    camera.position.z = 50;
+
+	    document.getElementById('prismWidth').addEventListener('input', updateBoxGeometry);
+	    document.getElementById('prismHeight').addEventListener('input', updateBoxGeometry);
+	    document.getElementById('prismDepth').addEventListener('input', updateBoxGeometry);
+
+		function updateBoxGeometry() {
+		    boxWidth = parseFloat(document.getElementById('prismWidth').value);
+		    boxHeight = parseFloat(document.getElementById('prismHeight').value);
+		    boxDepth = parseFloat(document.getElementById('prismDepth').value);
+
+		    box.geometry.dispose();  // Удаляем старую геометрию
+		    const newGeometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+		    updateBoxUVs(newGeometry, boxWidth, boxHeight, boxDepth); // Обновляем UV-координаты
+		    box.geometry = newGeometry;  // Присваиваем новую геометрию
+
+		    renderer.render(scene, camera);  // Перерисовываем сцену
+		}
+
+		function updateBoxUVs(geometry, width, height, depth) {
+		    const uvAttribute = geometry.attributes.uv;
+		    const faceVertexUvs = [
+		        // Front (z positive)
+		        [0, 1, width / depth, 1, width / depth, 0],
+		        // Back (z negative)
+		        [width / depth, 1, 0, 1, 0, 0],
+		        // Top (y positive)
+		        [0, 0, width / depth, 0, width / depth, height / depth],
+		        // Bottom (y negative)
+		        [width / depth, 0, 0, 0, 0, height / depth],
+		        // Right (x positive)
+		        [0, 1, height / width, 1, height / width, 0],
+		        // Left (x negative)
+		        [height / width, 1, 0, 1, 0, 0]
+		    ];
+
+		    uvAttribute.set( faceVertexUvs.flat() ); // Обновляем UV-координаты
+		    uvAttribute.needsUpdate = true;
+		}
+
+
+		function adjustUVs(geometry, boxWidth, boxHeight, boxDepth) {
+		    const uvMapping = [
+		        [new THREE.Vector2(0, 1), new THREE.Vector2(boxWidth / boxHeight, 1), new THREE.Vector2(boxWidth / boxHeight, 0)], // Front
+		        [new THREE.Vector2(0, 1), new THREE.Vector2(boxWidth / boxHeight, 1), new THREE.Vector2(boxWidth / boxHeight, 0)], // Back
+		        [new THREE.Vector2(0, 1), new THREE.Vector2(boxWidth / boxDepth, 1), new THREE.Vector2(boxWidth / boxDepth, 0)], // Top
+		        [new THREE.Vector2(0, 1), new THREE.Vector2(boxWidth / boxDepth, 1), new THREE.Vector2(boxWidth / boxDepth, 0)], // Bottom
+		        [new THREE.Vector2(0, 1), new THREE.Vector2(boxHeight / boxDepth, 1), new THREE.Vector2(boxHeight / boxDepth, 0)], // Right
+		        [new THREE.Vector2(0, 1), new THREE.Vector2(boxHeight / boxDepth, 1), new THREE.Vector2(boxHeight / boxDepth, 0)], // Left
+		    ];
+
+		    geometry.faceVertexUvs[0] = [];
+
+		    let faceIndex = 0;
+		    for (let i = 0; i < geometry.faces.length; i += 2) {
+		        geometry.faceVertexUvs[0].push(
+		            [uvMapping[faceIndex][0], uvMapping[faceIndex][1], uvMapping[faceIndex][2]],
+		            [uvMapping[faceIndex][0], uvMapping[faceIndex][2], uvMapping[faceIndex][1]]
+		        );
+		        faceIndex++;
+		    }
+		    geometry.uvsNeedUpdate = true;
+		}
+
+
+	    const textureLoader = new THREE.TextureLoader();
+
+	    function updateBoxTexture(imageData) {
+	        textureLoader.load(imageData, function (texture) {
+	            // Рассчитываем соотношение сторон для предотвращения растяжения
+	            const aspectRatio = texture.image.width / texture.image.height;
+	            const boxAspectRatio = boxWidth / boxHeight;
+
+	            if (boxAspectRatio > aspectRatio) {
+	                texture.repeat.set(boxAspectRatio / aspectRatio, 1);
+	            } else {
+	                texture.repeat.set(1, aspectRatio / boxAspectRatio);
+	            }
+
+	            // Создаем новый Canvas для добавления черных границ
+	            const canvas = document.createElement('canvas');
+	            const context = canvas.getContext('2d');
+	            canvas.width = texture.image.width;
+	            canvas.height = texture.image.height;
+	            context.drawImage(texture.image, 0, 0);
+
+	            // Добавляем черные границы
+	            context.strokeStyle = 'black';
+	            context.lineWidth = 2;
+	            context.strokeRect(0, 0, canvas.width, canvas.height);
+
+	            // Создаем новую текстуру из Canvas с границами
+	            const borderedTexture = new THREE.Texture(canvas);
+	            borderedTexture.needsUpdate = true;
+
+	            boxMaterial.map = borderedTexture;
+	            boxMaterial.needsUpdate = true;
+	        });
+	    }
+
+	    function animate() {
+	        requestAnimationFrame(animate);
+	        renderer.render(scene, camera);
+	    }
+	    animate();
+
+        document.getElementById('images').addEventListener('change', function(e) {
+            const imageOrder = document.getElementById('imageOrder');
+            imageOrder.innerHTML = '';
+            
+            Array.from(this.files).forEach((file, index) => {
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <label>
+                        <input type="checkbox" value="${index}">
+                        Изображение ${index + 1}: ${file.name}
+                    </label>
+                `;
+                imageOrder.appendChild(div);
+            });
+        });
+
+        document.getElementById('customOrder').addEventListener('change', function(e) {
+            const imageOrder = document.getElementById('imageOrder');
+            imageOrder.style.display = this.checked ? 'block' : 'none';
+            
+            if (this.checked) {
+                document.getElementById('shuffle').checked = false;
+            }
+        });
+
+        document.getElementById('shuffle').addEventListener('change', function(e) {
+            if (this.checked) {
+                document.getElementById('customOrder').checked = false;
+                document.getElementById('imageOrder').style.display = 'none';
+            }
+        });
+
+        document.getElementById('width').addEventListener('input', function(e) {
+            if (this.value < 100) this.value = 100;
+            if (this.value > 5000) this.value = 5000;
+        });
+
+        document.getElementById('height').addEventListener('input', function(e) {
+            if (this.value < 100) this.value = 100;
+            if (this.value > 5000) this.value = 5000;
+        });
+
+        document.getElementById('imageOrder').style.display = 'none';
+    </script>
+</body>
+</html>
