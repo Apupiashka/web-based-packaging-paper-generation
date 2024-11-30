@@ -30,6 +30,7 @@ app.config['MAIL_PASSWORD'] = 'your_password'  # Ваш пароль
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 
+# Загружаем единственный шаблон с МоиОтчёты Облако, чтобы всё время менять только его
 template = "https://hygieia.fast-report.com/download/t/674b0bf81d6ee7f62ddcd7df"
 
 def hex_to_rgb(hex_color):
