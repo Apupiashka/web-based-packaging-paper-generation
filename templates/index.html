@@ -316,6 +316,12 @@
                         <option value="diagonal">Диагональный</option>
                     </select>
                 </div>
+                
+                <label for="strokeSize">Размер обводки (px):</label>
+	            <input type="number" id="strokeSize" value="0">
+
+	            <label for="strokeColor">Цвет обводки:</label>
+	            <input type="text" id="strokeColor" value="белый" placeholder="Например: красный, #FF0000">
 
                 <div class="form-group">
                     <label>Резкость краев: <span id="sharpnessValue">0.01</span></label>
@@ -333,12 +339,15 @@
                 <div class="form-group">
                     <label>
                         <input type="checkbox" id="customOrder">
-                        Выбрать только некоторые изображения.
+                        Выбрать порядок самостоятельно.
                     </label>
                 </div>
+                <div id="customOrderOptions" style="display: none;">
+			    <p>Выберите изображения для генерации (кликните на превью):</p>
+			    <div id="previewContainer"></div> </div>
 
                 <div id="imageOrder" class="selected-images"></div>
-
+                
                 <button type="submit">Создать</button>
             </form>
         </div>
@@ -354,6 +363,11 @@
                 <button onclick="downloadImage('bmp')">Скачать BMP</button>
             </div>
         </div>
+        <form id="pdfForm">
+		    <label for="email">Введите вашу почту:</label>
+		    <input type="email" id="email" name="email" required>
+		    <button type="button" onclick="sendPdfByEmail()">Отправить PDF</button>
+		</form>
 	</div>
 	
 	<div>
@@ -362,12 +376,29 @@
         <label for="prismHeight">Высота коробки (см):</label>
         <input type="number" id="prismHeight" value="10">
         <label for="prismDepth">Длина коробки (см):</label>
-		<input id="prismDepth" type="number" value="20">
+		<input id="prismDepth" type="number" value="15">
     </div>
     <div id="canvas3d"></div>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script>
+	    function sendPdfByEmail() {
+	       const email = document.getElementById('email').value;
+	       const imageData = document.getElementById('result').src;
+
+	       fetch('/send-pdf-email', {
+			    method: 'POST',
+			    headers: {
+			        'Content-Type': 'application/x-www-form-urlencoded',
+			    },
+			    body: new URLSearchParams({
+			        email: 'example@example.com',
+			    }),
+	       })
+	       .then(response => response.json())
+	       .then(data => alert(data.message))
+	       .catch(error => console.error('Ошибка:', error));
+   	    }
     	function createGradient(ctx, width, height, colors, direction) {
 		    let gradient;
 		    
@@ -393,6 +424,7 @@
 		    const previewContainer = document.getElementById('previewContainer');
 		    previewContainer.innerHTML = '';
 		    imageOrder = [];
+    		selectedImages = [];
 		    
 		    Array.from(e.target.files).forEach((file, index) => {
 		        const reader = new FileReader();
@@ -412,18 +444,18 @@
 		            
 		            wrapper.addEventListener('click', function() {
 		                if (document.getElementById('customOrder').checked) {
-		                    const currentIndex = imageOrder.indexOf(index);
+		                    const currentIndex = selectedImages.indexOf(index);
 		                    if (currentIndex === -1) {
-		                        imageOrder.push(index);
-		                        orderNumber.textContent = imageOrder.length;
+		                        selectedImages.push(index);
+		                        wrapper.classList.add('selected');
 		                    } else {
-		                        imageOrder = imageOrder.filter(i => i !== index);
-		                        orderNumber.textContent = '';
-		                        updateOrderNumbers();
+		                        selectedImages.splice(currentIndex, 1);
+		                        wrapper.classList.remove('selected');
 		                    }
+		                    updateOrderNumbers();
 		                }
 		            });
-		            
+
 		            previewContainer.appendChild(wrapper);
 		        }
 		        reader.readAsDataURL(file);
@@ -432,9 +464,13 @@
 
 		function updateOrderNumbers() {
 		    const previews = document.querySelectorAll('.image-preview');
-		    imageOrder.forEach((imageIndex, orderIndex) => {
-		        const orderNumber = previews[imageIndex].querySelector('.order-number');
-		        orderNumber.textContent = orderIndex + 1;
+		    previews.forEach((preview, index) => {
+		        const orderNumber = preview.querySelector('.order-number');
+		        if (selectedImages.includes(index)) {
+		            orderNumber.textContent = selectedImages.indexOf(index) + 1;
+		        } else {
+		            orderNumber.textContent = '';
+		        }
 		    });
 		}
 
@@ -447,23 +483,22 @@
 		        });
 		    }
 		});
-    	
-	    document.getElementById('images').addEventListener('change', function(e) {
-            const previewContainer = document.getElementById('previewContainer');
-            previewContainer.innerHTML = '';
-            
-            for (let file of e.target.files) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.className = 'preview-image';
-                    previewContainer.appendChild(img);
-                }
-                reader.readAsDataURL(file);
-            }
-        });
+		
+		const customOrderCheckbox = document.getElementById('customOrder');
+		const customOrderOptions = document.getElementById('customOrderOptions');
 
+		customOrderCheckbox.addEventListener('change', function() {
+		    if (this.checked) {
+		        customOrderOptions.style.display = 'block';
+		    } else {
+		        customOrderOptions.style.display = 'none';
+		        selectedImages = [];
+		        const imagePreviews = document.querySelectorAll('.image-preview');
+		        imagePreviews.forEach(preview => {
+		            preview.classList.remove('selected');
+		        });
+		    }
+		});
 
         function downloadImage(format) {
             const imageData = document.getElementById('result').src;
@@ -514,6 +549,8 @@
             formData.append('sharpness', document.getElementById('sharpness').value);
             formData.append('shuffle', document.getElementById('shuffle').checked);
             formData.append('customOrder', document.getElementById('customOrder').checked);
+            formData.append('strokeSize', document.getElementById('strokeSize').value);
+    		formData.append('strokeColor', document.getElementById('strokeColor').value);
 
             if (document.getElementById('customOrder').checked) {
                 formData.append('selectedImages', imageOrder.join(','));
@@ -521,6 +558,14 @@
 
             document.querySelector('.loading').style.display = 'block';
             document.getElementById('result').style.display = 'none';
+            
+            if (document.getElementById('customOrder').checked) {
+		        if (selectedImages.length === 0) {
+		            alert("Выберите хотя бы одно изображение!");
+		            return;
+		        }
+		        formData.append('selectedImages', selectedImages.join(','));
+		    }
 
             fetch('/generate', {
                 method: 'POST',
@@ -573,44 +618,63 @@
 		    boxHeight = parseFloat(document.getElementById('prismHeight').value);
 		    boxDepth = parseFloat(document.getElementById('prismDepth').value);
 
-		    box.geometry.dispose();  // Удаляем старую геометрию
+		    box.geometry.dispose();
 		    const newGeometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
-		    updateBoxUVs(newGeometry, boxWidth, boxHeight, boxDepth); // Обновляем UV-координаты
-		    box.geometry = newGeometry;  // Присваиваем новую геометрию
 
-		    renderer.render(scene, camera);  // Перерисовываем сцену
+		    updateBoxUVs(newGeometry, boxWidth, boxHeight, boxDepth);
+
+		    box.geometry = newGeometry;
+
+		    if (boxMaterial.map) {
+		        updateBoxTexture(boxMaterial.map.image.src);
+		    }
+
+		    renderer.render(scene, camera);
 		}
 
 		function updateBoxUVs(geometry, width, height, depth) {
-		    const uvAttribute = geometry.attributes.uv;
-		    const faceVertexUvs = [
-		        // Front (z positive)
-		        [0, 1, width / depth, 1, width / depth, 0],
-		        // Back (z negative)
-		        [width / depth, 1, 0, 1, 0, 0],
-		        // Top (y positive)
-		        [0, 0, width / depth, 0, width / depth, height / depth],
-		        // Bottom (y negative)
-		        [width / depth, 0, 0, 0, 0, height / depth],
-		        // Right (x positive)
-		        [0, 1, height / width, 1, height / width, 0],
-		        // Left (x negative)
-		        [height / width, 1, 0, 1, 0, 0]
+		    geometry.clearGroups();
+		    geometry.attributes.uv.array.fill(0);
+
+		    const uvArray = [];
+
+		    const faceRatios = [
+		        [width, height],
+		        [width, height],
+		        [width, depth],
+		        [width, depth],
+		        [height, depth],
+		        [height, depth],
 		    ];
 
-		    uvAttribute.set( faceVertexUvs.flat() ); // Обновляем UV-координаты
-		    uvAttribute.needsUpdate = true;
+		    faceRatios.forEach(([faceWidth, faceHeight]) => {
+		        const ratioWidth = faceWidth / (width + height + depth);
+		        const ratioHeight = faceHeight / (width + height + depth);
+
+		        uvArray.push(
+		            0, 1,
+		            ratioWidth, 1,
+		            ratioWidth, 1 - ratioHeight,
+
+		            0, 1,
+		            ratioWidth, 1 - ratioHeight,
+		            0, 1 - ratioHeight
+		        );
+		    });
+
+		    geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvArray.flat(), 2));
+		    geometry.uvsNeedUpdate = true;
 		}
 
 
 		function adjustUVs(geometry, boxWidth, boxHeight, boxDepth) {
 		    const uvMapping = [
-		        [new THREE.Vector2(0, 1), new THREE.Vector2(boxWidth / boxHeight, 1), new THREE.Vector2(boxWidth / boxHeight, 0)], // Front
-		        [new THREE.Vector2(0, 1), new THREE.Vector2(boxWidth / boxHeight, 1), new THREE.Vector2(boxWidth / boxHeight, 0)], // Back
-		        [new THREE.Vector2(0, 1), new THREE.Vector2(boxWidth / boxDepth, 1), new THREE.Vector2(boxWidth / boxDepth, 0)], // Top
-		        [new THREE.Vector2(0, 1), new THREE.Vector2(boxWidth / boxDepth, 1), new THREE.Vector2(boxWidth / boxDepth, 0)], // Bottom
-		        [new THREE.Vector2(0, 1), new THREE.Vector2(boxHeight / boxDepth, 1), new THREE.Vector2(boxHeight / boxDepth, 0)], // Right
-		        [new THREE.Vector2(0, 1), new THREE.Vector2(boxHeight / boxDepth, 1), new THREE.Vector2(boxHeight / boxDepth, 0)], // Left
+		        [new THREE.Vector2(0, 1), new THREE.Vector2(boxWidth / boxHeight, 1), new THREE.Vector2(boxWidth / boxHeight, 0)],
+		        [new THREE.Vector2(0, 1), new THREE.Vector2(boxWidth / boxHeight, 1), new THREE.Vector2(boxWidth / boxHeight, 0)],
+		        [new THREE.Vector2(0, 1), new THREE.Vector2(boxWidth / boxDepth, 1), new THREE.Vector2(boxWidth / boxDepth, 0)],
+		        [new THREE.Vector2(0, 1), new THREE.Vector2(boxWidth / boxDepth, 1), new THREE.Vector2(boxWidth / boxDepth, 0)],
+		        [new THREE.Vector2(0, 1), new THREE.Vector2(boxHeight / boxDepth, 1), new THREE.Vector2(boxHeight / boxDepth, 0)],
+		        [new THREE.Vector2(0, 1), new THREE.Vector2(boxHeight / boxDepth, 1), new THREE.Vector2(boxHeight / boxDepth, 0)],
 		    ];
 
 		    geometry.faceVertexUvs[0] = [];
@@ -629,60 +693,64 @@
 
 	    const textureLoader = new THREE.TextureLoader();
 
-	    function updateBoxTexture(imageData) {
-	        textureLoader.load(imageData, function (texture) {
-	            // Рассчитываем соотношение сторон для предотвращения растяжения
-	            const aspectRatio = texture.image.width / texture.image.height;
-	            const boxAspectRatio = boxWidth / boxHeight;
+		function updateBoxTexture(imageData) {
+		    textureLoader.load(imageData, function (texture) {
+		        texture.wrapS = THREE.RepeatWrapping;
+		        texture.wrapT = THREE.RepeatWrapping;
 
-	            if (boxAspectRatio > aspectRatio) {
-	                texture.repeat.set(boxAspectRatio / aspectRatio, 1);
-	            } else {
-	                texture.repeat.set(1, aspectRatio / boxAspectRatio);
-	            }
+		        const aspectRatioTexture = texture.image.width / texture.image.height;
+		        const boxAspectRatio = boxWidth / boxHeight;
 
-	            // Создаем новый Canvas для добавления черных границ
-	            const canvas = document.createElement('canvas');
-	            const context = canvas.getContext('2d');
-	            canvas.width = texture.image.width;
-	            canvas.height = texture.image.height;
-	            context.drawImage(texture.image, 0, 0);
+		        if (boxAspectRatio > aspectRatioTexture) {
+		            texture.repeat.set(boxAspectRatio / aspectRatioTexture, 1);
+		        } else {
+		            texture.repeat.set(1, aspectRatioTexture / boxAspectRatio);
+		        }
 
-	            // Добавляем черные границы
-	            context.strokeStyle = 'black';
-	            context.lineWidth = 2;
-	            context.strokeRect(0, 0, canvas.width, canvas.height);
+		        texture.needsUpdate = true;
+		        boxMaterial.map = texture;
+		        boxMaterial.needsUpdate = true;
 
-	            // Создаем новую текстуру из Canvas с границами
-	            const borderedTexture = new THREE.Texture(canvas);
-	            borderedTexture.needsUpdate = true;
+		        renderer.render(scene, camera);
+		    });
+		}
 
-	            boxMaterial.map = borderedTexture;
-	            boxMaterial.needsUpdate = true;
-	        });
-	    }
 
-	    function animate() {
-	        requestAnimationFrame(animate);
-	        renderer.render(scene, camera);
-	    }
+		function animate() {
+		    requestAnimationFrame(animate);
+		    controls.update();
+		    renderer.render(scene, camera);
+		}
 	    animate();
 
-        document.getElementById('images').addEventListener('change', function(e) {
-            const imageOrder = document.getElementById('imageOrder');
-            imageOrder.innerHTML = '';
-            
-            Array.from(this.files).forEach((file, index) => {
-                const div = document.createElement('div');
-                div.innerHTML = `
-                    <label>
-                        <input type="checkbox" value="${index}">
-                        Изображение ${index + 1}: ${file.name}
-                    </label>
-                `;
-                imageOrder.appendChild(div);
-            });
-        });
+		document.getElementById('downloadExternalButton').addEventListener('click', function() {
+		    const externalUrl = document.getElementById('externalUrl').value;
+
+		    fetch('/download-external', {
+		        method: 'POST',
+		        headers: {
+		            'Content-Type': 'application/x-www-form-urlencoded'
+		        },
+		        body: `externalUrl=${encodeURIComponent(externalUrl)}`
+		    })
+		    .then(response => response.json())
+		    .then(data => {
+		        if (data.error) {
+		            console.error(data.error);
+		            alert('Ошибка загрузки изображения по ссылке');
+		            return;
+		        }
+
+		        previewImage.src = data.image;
+		        uploadedFilename = data.filename;
+
+		        updateBoxTexture(data.image);
+		    })
+		    .catch(error => {
+		        console.error('Error:', error);
+		        alert('Произошла ошибка при загрузке изображения по ссылке');
+		    });
+		});
 
         document.getElementById('customOrder').addEventListener('change', function(e) {
             const imageOrder = document.getElementById('imageOrder');
